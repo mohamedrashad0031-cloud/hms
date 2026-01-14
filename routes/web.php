@@ -6,7 +6,7 @@ use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\GuestController;
-use App\Http\Controllers\bookingController;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\PaymentsController;
 use App\Http\Controllers\StaffController;
 
@@ -18,41 +18,7 @@ Route::post('/register', [RegisterController::class, 'register'])->name('registe
 Route::get('/login', [LoginController::class, 'showForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
 
-Route::get('/room', [RoomController::class, 'index'])->name('room');
-Route::post('/room', [RoomController::class, 'index'])->name('room');
-
-// BOOKINGS
-Route::get('/bookings', [bookingController::class, 'index'])->name('bookings');
-
-// PAYMENTS
-Route::get('/payments', [PaymentsController::class, 'index'])->name('payments');
-route::post('payments/store', [PaymentsController::class, 'store'])->name('payments.store');
-
-// STAFF
-Route::get('/staff', [StaffController::class, 'index'])->name('staff');
-
-
-route::get('/guests', [GuestController::class, 'index'])->name('guests');
-
-// // GUESTS
-// Route::get('/guests', function () {
-//     return view('guests');
-// })->name('guests');
-
-// HOME
-Route::get('/', function () {
-    return view('home');
-});
-
-// DASHBOARD
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->name('dashboard');
-
-
-
-
-
+// LOGOUT
 Route::post('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();
@@ -60,19 +26,58 @@ Route::post('/logout', function () {
     return redirect('/login');
 })->name('logout');
 
+// HOME
+Route::get('/', function () { return view('home'); })->name('home');
 
+// =======================
+// AUTH ROUTES (ROLE-BASED)
+// =======================
+Route::middleware(['auth'])->group(function () {
 
+    // ADMIN ROUTES
+    Route::middleware('role:admin')->prefix('admin')->group(function () {
+        Route::get('dashboard', function(){ return view('admin.dashboard'); })->name('admin.dashboard');
 
- 
-//  Route::get('/deashboard', function (){
-//     return view('deashboar');
-//   });
+        // Staff management
+        Route::get('staff', [StaffController::class,'index'])->name('admin.staff');
+        Route::post('staff/store', [StaffController::class,'store'])->name('admin.staff.store');
 
-//  Route::get('/register', function (){
-//     return view('register');
-//  });
+        // Rooms management
+        Route::resource('rooms', RoomController::class);
 
-//   Route::get('/login', function (){
-//     return view('login');
-//  });
+        // Bookings management
+        Route::resource('bookings', BookingController::class);
 
+        // Payments management
+        Route::get('payments', [PaymentsController::class,'index'])->name('admin.payments');
+        Route::post('payments/store', [PaymentsController::class,'store'])->name('admin.payments.store');
+// DASHBOARD
+Route::get('/dashboard', function () {
+    return view('admin.dashboard');
+})->name('dashboard');
+
+    });
+
+    // STAFF ROUTES
+    Route::middleware('role:staff')->prefix('staff')->group(function () {
+        Route::get('dashboard', function(){ return view('staff.dashboard'); })->name('staff.dashboard');
+
+        // Rooms management (no staff CRUD)
+        Route::resource('rooms', RoomController::class)->except(['destroy']);
+
+        // Bookings management
+        Route::resource('bookings', BookingController::class)->except(['destroy']);
+
+        // Payments
+        Route::get('payments', [PaymentsController::class,'index'])->name('staff.payments');
+        Route::post('payments/store', [PaymentsController::class,'store'])->name('staff.payments.store');
+    });
+
+    // GUEST/USER ROUTES
+    Route::middleware('role:user')->prefix('user')->group(function () {
+        Route::get('dashboard', function(){ return view('user.dashboard'); })->name('user.dashboard');
+        Route::get('rooms', [RoomController::class,'index'])->name('user.rooms');
+        Route::get('bookings', [BookingController::class,'index'])->name('user.bookings');
+    });
+
+});
