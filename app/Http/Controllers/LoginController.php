@@ -29,7 +29,7 @@ class LoginController extends Controller
             // normal user
             return redirect('/');
         }
-
+//rashad paythyam
         return back()->withErrors([
             'email' => 'Invalid credentials',
         ]);
